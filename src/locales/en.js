@@ -5,6 +5,7 @@ home:"Home",
 store:"Africa Mart",
 restaurant:"Restaurant",
 gallery:"Gallery",
+about:"about",
 contact:"Contact"
 },
 
@@ -16,7 +17,6 @@ subtitle:
 store:"Explore Africa Mart",
 restaurant:"Visit Restaurant"
 },
-
 
 story:{
 title:"Two brands. One experience.",

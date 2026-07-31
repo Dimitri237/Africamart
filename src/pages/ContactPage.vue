@@ -3,44 +3,471 @@
 <section class="contact">
 
 
-<div style="margin-top: 150px;" class="container">
+<div class="container">
 
+
+<div class="title reveal">
 
 <h1>
 Contact Us
 </h1>
 
+<p>
+We are happy to welcome you. Contact Africa Mart or Michelle's Restaurant today.
+</p>
+
+</div>
+
+
+
 <div class="contacts">
-    <img src="../assets/images/logos/infoS.jpg" alt="Africa Mart" class="logo" />
-    <img src="../assets/images/logos/infoR.jpg" alt="Africa Mart" class="logo" />
+
+
+
+<div class="card reveal">
+
+
+<img
+src="../assets/images/logos/infoS.jpg"
+alt="Africa Mart"
+class="logo"
+/>
+
+
+<h2>
+Africa Mart
+</h2>
+
+
+<p>
+Authentic African groceries and traditional products.
+</p>
+
+
+
+<div class="details">
+
+<p>
+📍 Location: Yaoundé, Cameroon
+</p>
+
+<p>
+📞 Phone: +237 XXX XXX XXX
+</p>
+
+<p>
+✉️ Email: contact@africamart.com
+</p>
+
 </div>
+
+
+
+<a 
+href="#"
+class="button"
+>
+Chat on WhatsApp
+</a>
+
+
 </div>
+
+
+
+
+<div class="card reveal">
+
+
+<img
+src="../assets/images/logos/infoR.jpg"
+alt="Michelle's Restaurant"
+class="logo"
+/>
+
+
+<h2>
+Michelle's Restaurant
+</h2>
+
+
+<p>
+African, European and international cuisine.
+</p>
+
+
+
+<div class="details">
+
+<p>
+📍 Location: Yaoundé, Cameroon
+</p>
+
+<p>
+📞 Phone: +237 XXX XXX XXX
+</p>
+
+<p>
+🕒 Open: Monday - Sunday
+</p>
+
+
+</div>
+
+
+
+<a 
+href="#"
+class="button"
+>
+Reserve a Table
+</a>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
 </section>
+
 
 </template>
 
 
 
+<script setup>
+
+
+const observer =
+new IntersectionObserver(
+
+(entries)=>{
+
+entries.forEach(entry=>{
+
+if(entry.isIntersecting){
+
+entry.target.classList.add("show")
+
+}
+
+})
+
+},
+
+{
+threshold:.15
+}
+
+)
+
+
+
+setTimeout(()=>{
+
+document
+.querySelectorAll(".reveal")
+.forEach(el=>observer.observe(el))
+
+},100)
+
+
+</script>
+
+
+
 <style scoped>
-.contacts{
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    margin: 50px 0;
+
+
+.contact{
+
+
+padding:150px 0 100px;
+
+
+background:
+
+
+radial-gradient(
+
+circle at top,
+
+rgba(212,175,55,.18),
+
+transparent 45%
+
+),
+
+
+#111;
+
+
+color:white;
+
+
 }
 
-.contacts img{
- margin:auto;
-max-width: 45%;
-border-radius:30px;
-box-shadow:var(--shadow);
+
+
+.container{
+
+
+width:90%;
+
+max-width:1300px;
+
+margin:auto;
+
+
 }
 
-h1{
+
+
+.title{
+
 
 text-align:center;
 
-font-size:50px;
+margin-bottom:70px;
+
+
+}
+
+
+
+.title h1{
+
+
+font-size:60px;
+
+color:#d4af37;
+
+
+}
+
+
+
+.title p{
+
+
+color:#ccc;
+
+font-size:20px;
+
+
+}
+
+
+
+.contacts{
+
+
+display:grid;
+
+grid-template-columns:repeat(2,1fr);
+
+gap:50px;
+
+
+}
+
+
+
+.card{
+
+
+background:
+
+
+linear-gradient(
+
+145deg,
+
+#202020,
+
+#111
+
+);
+
+
+padding:40px;
+
+border-radius:35px;
+
+text-align:center;
+
+
+border:1px solid rgba(212,175,55,.2);
+
+
+transition:.5s;
+
+
+}
+
+
+
+.card:hover{
+
+
+transform:translateY(-15px);
+
+
+box-shadow:
+
+0 25px 60px rgba(212,175,55,.2);
+
+
+}
+
+
+
+.logo{
+
+
+width:100%;
+
+max-width:350px;
+
+border-radius:25px;
+
+
+box-shadow:
+
+0 15px 40px rgba(0,0,0,.5);
+
+
+}
+
+
+
+.card h2{
+
+
+font-size:35px;
+
+color:#d4af37;
+
+margin-top:30px;
+
+
+}
+
+
+
+.card p{
+
+
+color:#ddd;
+
+line-height:1.7;
+
+
+}
+
+
+
+.details{
+
+
+margin:30px 0;
+
+text-align:left;
+
+
+}
+
+
+
+.button{
+
+
+display:inline-block;
+
+background:#d4af37;
+
+color:#111;
+
+padding:15px 35px;
+
+border-radius:40px;
+
+font-weight:bold;
+
+text-decoration:none;
+
+transition:.3s;
+
+
+}
+
+
+
+.button:hover{
+
+
+transform:scale(1.05);
+
+
+}
+
+
+
+.reveal{
+
+
+opacity:0;
+
+transform:translateY(50px);
+
+transition:1s;
+
+
+}
+
+
+
+.show{
+
+
+opacity:1;
+
+transform:none;
+
+
+}
+
+
+
+
+@media(max-width:800px){
+
+
+.contacts{
+
+
+grid-template-columns:1fr;
+
+
+}
+
+
+
+.title h1{
+
+
+font-size:40px;
+
+
+}
+
+
 
 }
 

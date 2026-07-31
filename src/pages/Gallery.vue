@@ -1,27 +1,60 @@
 <template>
 
-<section class="container gallery">
+<section class="gallery">
 
+<div class="container">
+
+
+<div class="title reveal">
 
 <h1>
 Our Gallery
 </h1>
 
+<p>
+Discover our African products, delicious meals and memorable moments.
+</p>
+
+</div>
+
+
 
 <div class="grid">
 
 
+<div
+v-for="(img,index) in images"
+:key="index"
+class="item reveal"
+>
+
+
 <img
-v-for="img in images"
-:key="img"
 :src="img"
+alt="Africa Mart Gallery"
 />
+
+
+<div class="overlay">
+
+<span>
+View
+</span>
+
+</div>
+
+
+</div>
+
+
+</div>
 
 
 </div>
 
 
 </section>
+
 
 </template>
 
@@ -30,19 +63,67 @@ v-for="img in images"
 <script setup>
 
 
+import gallery1 from "../assets/images/products/poivre.png"
+import gallery2 from "../assets/images/products/poivre.png"
+import gallery3 from "../assets/images/products/poivre.png"
+import gallery4 from "../assets/images/products/poivre.png"
+import gallery5 from "../assets/images/products/poivre.png"
+import gallery6 from "../assets/images/products/poivre.png"
+
+
+
 const images=[
 
-"/src/assets/images/gallery1.jpg",
-"/src/assets/images/gallery2.jpg",
-"/src/assets/images/gallery3.jpg",
-"/src/assets/images/gallery4.jpg",
-"/src/assets/images/gallery5.jpg",
-"/src/assets/images/gallery6.jpg"
+gallery1,
+gallery2,
+gallery3,
+gallery4,
+gallery5,
+gallery6
 
 ]
 
 
+
+// Scroll animation
+
+const observer =
+new IntersectionObserver(
+
+(entries)=>{
+
+entries.forEach(entry=>{
+
+if(entry.isIntersecting){
+
+entry.target.classList.add("show")
+
+}
+
+})
+
+},
+
+{
+threshold:.15
+}
+
+)
+
+
+
+setTimeout(()=>{
+
+document
+.querySelectorAll(".reveal")
+.forEach(el=>observer.observe(el))
+
+},100)
+
+
+
 </script>
+
 
 
 <style scoped>
@@ -50,17 +131,61 @@ const images=[
 
 .gallery{
 
-padding:100px 0;
+padding:120px 0;
+
+background:
+
+radial-gradient(
+circle at top,
+rgba(212,175,55,.18),
+transparent 40%
+),
+
+#111;
 
 }
 
 
 
-.gallery h1{
+.container{
+
+width:90%;
+
+max-width:1400px;
+
+margin:auto;
+
+}
+
+
+
+.title{
 
 text-align:center;
 
-font-size:50px;
+margin-bottom:70px;
+
+}
+
+
+
+.title h1{
+
+font-size:60px;
+
+color:#d4af37;
+
+margin-bottom:20px;
+
+}
+
+
+
+.title p{
+
+color:#ddd;
+
+font-size:20px;
 
 }
 
@@ -73,37 +198,142 @@ display:grid;
 grid-template-columns:
 repeat(3,1fr);
 
-gap:25px;
-
-margin-top:50px;
+gap:30px;
 
 }
 
 
-.grid img{
 
-height:300px;
+.item{
+
+position:relative;
+
+overflow:hidden;
+
+border-radius:30px;
+
+height:350px;
+
+cursor:pointer;
+
+}
+
+
+
+.item img{
 
 width:100%;
 
+height:100%;
+
 object-fit:cover;
 
-border-radius:25px;
+transition:.6s;
+
+}
+
+
+
+.item:hover img{
+
+transform:scale(1.12);
+
+}
+
+
+
+.overlay{
+
+position:absolute;
+
+inset:0;
+
+background:
+
+linear-gradient(
+transparent,
+rgba(0,0,0,.75)
+);
+
+display:flex;
+
+align-items:flex-end;
+
+justify-content:center;
+
+padding-bottom:30px;
+
+opacity:0;
 
 transition:.4s;
 
 }
 
 
-.grid img:hover{
 
-transform:scale(1.05);
+.item:hover .overlay{
+
+opacity:1;
 
 }
 
 
 
-@media(max-width:700px){
+.overlay span{
+
+background:#d4af37;
+
+padding:12px 35px;
+
+border-radius:40px;
+
+font-weight:bold;
+
+color:#111;
+
+}
+
+
+
+.reveal{
+
+opacity:0;
+
+transform:translateY(50px);
+
+transition:1s;
+
+}
+
+
+
+.show{
+
+opacity:1;
+
+transform:none;
+
+}
+
+
+
+@media(max-width:900px){
+
+
+.grid{
+
+grid-template-columns:
+repeat(2,1fr);
+
+}
+
+
+}
+
+
+
+@media(max-width:600px){
+
 
 .grid{
 
@@ -111,8 +341,14 @@ grid-template-columns:1fr;
 
 }
 
+
+.title h1{
+
+font-size:40px;
+
 }
 
 
+}
 
 </style>

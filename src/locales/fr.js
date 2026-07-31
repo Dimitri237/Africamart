@@ -6,11 +6,9 @@ home:"Accueil",
 store:"Africa Mart",
 restaurant:"Restaurant",
 gallery:"Galerie",
+about:"a propos",
 contact:"Contact"
 },
-
-
-
 hero:{
 title:"Le goût authentique de l'Afrique.",
 subtitle:

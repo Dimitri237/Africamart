@@ -5,11 +5,24 @@
 <div class="container">
 
 
-<div class="header">
-<img src="../assets/images/logos/logos.png" alt="Africa Mart" class="logo" />
+<div class="header reveal">
+
+<img 
+src="../assets/images/logos/logos.png"
+alt="Africa Mart"
+class="logo"
+/>
+
+
 <h1>
-Authentic African groceries delivered with quality and tradition.
+Africa Mart
 </h1>
+
+
+<p>
+Authentic African groceries delivered with quality and tradition.
+</p>
+
 
 </div>
 
@@ -18,19 +31,44 @@ Authentic African groceries delivered with quality and tradition.
 <div class="products">
 
 
-<div 
-class="product"
+<div
 v-for="item in products"
 :key="item.name"
+class="product reveal"
 >
 
 
-<img :src="item.image">
+<div 
+class="badge"
+:class="item.type"
+>
+{{item.badge}}
+</div>
 
 
-<h3>
+
+<img 
+:src="item.image"
+:alt="item.name"
+/>
+
+
+
+<div class="content">
+
+
+<h2>
 {{item.name}}
-</h3>
+</h2>
+
+
+
+<div class="stars">
+
+⭐⭐⭐⭐⭐
+
+</div>
+
 
 
 <p>
@@ -38,18 +76,32 @@ v-for="item in products"
 </p>
 
 
+
 <span>
 {{item.category}}
-</span> <br>
+</span>
+
+
+
+<div class="price">
+
 <strong>
+${{item.price}}
+</strong>
 
-{{item.price}} $
+</div>
 
-</strong> <br>
-<button
-@click="add(item)">
-Add to cart
-</button>
+
+<RouterLink 
+:to="`/product/${item.slug}`"
+class="details"
+>
+View product
+</RouterLink>
+<!-- <button @click="add(item)">
+🛒 Add to cart
+</button> -->
+
 
 
 </div>
@@ -59,56 +111,137 @@ Add to cart
 
 
 </div>
+
+
+</div>
+
 
 </section>
 
+
 </template>
+
 
 
 <script setup>
 
 
+import tblanc from "../assets/images/products/tblanc.png"
+import tjaune from "../assets/images/products/tjaune.png"
+import miondo from "../assets/images/products/miondo.png"
+import poivre from "../assets/images/products/poivre.png"
+
+
+
 const products=[
+
 
 {
 name:"White Garri",
+slug:"white-garri",
 category:"Cassava Product",
 description:
 "Premium fermented cassava flakes from Africa.",
-image:"/src/assets/images/products/tblanc.png"
+price:"25",
+badge:"Best Seller",
+type:"best",
+image:tblanc
 },
+
 
 
 {
 name:"Yellow Garri",
+slug:"Yellow Garri",
 category:"Traditional Food",
 description:
 "Golden cassava flakes with authentic taste.",
-image:"/src/assets/images/products/tjaune.png"
+price:"30",
+badge:"Traditional",
+type:"traditional",
+image:tjaune
 },
+
 
 
 {
 name:"Miondo",
+slug:"Miondo",
 category:"African Delicacy",
 description:
-"Traditional cassava sticks.",
-image:"/src/assets/images/products/miondo.png"
+"Traditional cassava sticks from Cameroon.",
+price:"35",
+badge:"Popular",
+type:"popular",
+image:miondo
 },
 
 
+
 {
-name:"White pepper",
+name:"White Pepper",
+slug:"White Pepper",
 category:"Seasoning",
 description:
-"Natural spices for African cuisine.",
-image:"/src/assets/images/products/poivre.png"
+"Natural African spices for delicious meals.",
+price:"20",
+badge:"Organic",
+type:"organic",
+image:poivre
 }
+
+
 
 ]
 
 
+
+function add(item){
+
+alert(
+`${item.name} added to cart`
+)
+
+}
+
+
+
+// Scroll animation
+
+const observer =
+new IntersectionObserver(
+(entries)=>{
+
+entries.forEach(entry=>{
+
+if(entry.isIntersecting){
+
+entry.target.classList.add("show")
+
+}
+
+})
+
+},
+{
+threshold:.15
+}
+)
+
+
+
+setTimeout(()=>{
+
+document
+.querySelectorAll(".reveal")
+.forEach(el=>observer.observe(el))
+
+},100)
+
+
+
 </script>
+
 
 
 <style scoped>
@@ -116,7 +249,31 @@ image:"/src/assets/images/products/poivre.png"
 
 .store{
 
-padding:100px 0;
+position:relative;
+
+padding:120px 0;
+
+background:
+
+radial-gradient(
+circle at top,
+rgba(212,175,55,.18),
+transparent 45%
+),
+
+#faf8f2;
+
+}
+
+
+
+.container{
+
+width:90%;
+
+max-width:1400px;
+
+margin:auto;
 
 }
 
@@ -126,16 +283,43 @@ padding:100px 0;
 
 text-align:center;
 
-margin-bottom:70px;
+}
+
+
+
+.logo{
+
+width:130px;
+
+height:130px;
+
+border-radius:50%;
+
+object-fit:cover;
+
+border:4px solid #d4af37;
 
 }
 
 
+
 .header h1{
 
-font-size:60px;
+font-size:65px;
 
-color:var(--secondary);
+margin-top:20px;
+
+color:#1c1c1c;
+
+}
+
+
+
+.header p{
+
+font-size:20px;
+
+color:#666;
 
 }
 
@@ -143,12 +327,20 @@ color:var(--secondary);
 
 .products{
 
+
+margin-top:70px;
+
+
 display:grid;
 
-grid-template-columns:
-repeat(4,1fr);
 
-gap:30px;
+grid-template-columns:
+
+repeat(auto-fit,minmax(280px,1fr));
+
+
+gap:35px;
+
 
 }
 
@@ -156,15 +348,18 @@ gap:30px;
 
 .product{
 
+position:relative;
+
 background:white;
 
-border-radius:25px;
+border-radius:30px;
 
-padding:25px;
+overflow:hidden;
 
-box-shadow:var(--shadow);
+box-shadow:
+0 20px 50px rgba(0,0,0,.1);
 
-transition:.3s;
+transition:.5s;
 
 }
 
@@ -173,7 +368,7 @@ transition:.3s;
 .product:hover{
 
 transform:
-translateY(-10px);
+translateY(-15px);
 
 }
 
@@ -181,21 +376,111 @@ translateY(-10px);
 
 .product img{
 
-height:220px;
-
 width:100%;
 
-object-fit:cover;
+height:260px;
 
-border-radius:20px;
+object-fit:cover;
 
 }
 
 
 
-.product span{
+.badge{
 
-color:var(--primary);
+position:absolute;
+
+top:20px;
+
+left:20px;
+
+padding:8px 18px;
+
+border-radius:30px;
+
+font-weight:bold;
+
+z-index:2;
+
+}
+
+
+
+.best{
+
+background:#d4af37;
+
+}
+
+
+
+.traditional{
+
+background:#8b4513;
+
+color:white;
+
+}
+
+
+
+.popular{
+
+background:#27ae60;
+
+color:white;
+
+}
+
+
+
+.organic{
+
+background:#3498db;
+
+color:white;
+
+}
+
+
+
+.content{
+
+padding:25px;
+
+}
+
+
+
+.content h2{
+
+font-size:28px;
+
+}
+
+
+
+.stars{
+
+margin:10px 0;
+
+}
+
+
+
+.content p{
+
+color:#666;
+
+line-height:1.6;
+
+}
+
+
+
+.content span{
+
+color:#d4af37;
 
 font-weight:bold;
 
@@ -203,29 +488,98 @@ font-weight:bold;
 
 
 
-@media(max-width:900px){
+.price{
 
-.products{
+display:flex;
 
-grid-template-columns:
-repeat(2,1fr);
+justify-content:space-between;
 
-}
+align-items:center;
 
-}
-
-
-
-@media(max-width:600px){
-
-.products{
-
-grid-template-columns:1fr;
-
-}
+margin:20px 0;
 
 }
 
 
+
+.price strong{
+
+font-size:24px;
+
+color:#1c1c1c;
+
+}
+
+
+
+.price small{
+
+color:#777;
+
+}
+
+
+
+button{
+
+width:100%;
+
+padding:15px;
+
+border:none;
+
+border-radius:50px;
+
+background:#d4af37;
+
+font-weight:bold;
+
+cursor:pointer;
+
+transition:.3s;
+
+}
+
+
+
+button:hover{
+
+transform:scale(1.05);
+
+}
+
+
+
+.reveal{
+
+opacity:0;
+
+transform:translateY(50px);
+
+transition:1s;
+
+}
+
+
+
+.show{
+
+opacity:1;
+
+transform:none;
+
+}
+
+
+@media(max-width:700px){
+
+.header h1{
+
+font-size:38px;
+
+}
+
+
+}
 
 </style>

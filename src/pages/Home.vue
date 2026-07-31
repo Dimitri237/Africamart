@@ -1,5 +1,6 @@
 <template>
 
+<!-- HERO -->
 
 <section class="hero">
 
@@ -7,21 +8,21 @@
 <div class="overlay"></div>
 
 
+<div class="content reveal">
 
-<div class="content">
+
+<span class="welcome">
+Welcome to Africa Mart
+</span>
 
 
 <h1>
-
-{{t("hero","title")}}
-
+{{ t("hero.title") }}
 </h1>
 
 
 <p>
-
-{{t("hero","subtitle")}}
-
+{{ t("hero.subtitle") }}
 </p>
 
 
@@ -29,26 +30,31 @@
 <div class="buttons">
 
 
-<a class="btn">
+<RouterLink
+to="/store"
+class="btn"
+>
 
-{{t("hero","store")}}
+🛒 {{ t("hero.store") }}
 
-</a>
+</RouterLink>
 
 
 
-<a class="btn second">
+<RouterLink
+to="/restaurant"
+class="btn second"
+>
 
-{{t("hero","restaurant")}}
+🍽 {{ t("hero.restaurant") }}
 
-</a>
+</RouterLink>
 
 
 </div>
 
 
 </div>
-
 
 
 </section>
@@ -56,19 +62,20 @@
 
 
 
-<section class="story container">
+<!-- STORY -->
+
+
+<section class="story container reveal">
 
 
 <h2>
-
-{{t("story","title")}}
-
+{{ t("story.title") }}
 </h2>
 
 
 <p>
 
-{{t("story","text")}}
+{{ t("story.text") }}
 
 </p>
 
@@ -79,11 +86,13 @@
 
 
 
+<!-- BRANDS -->
+
+
 <section class="brands">
 
 
-
-<div>
+<div class="brand store reveal">
 
 
 <h2>
@@ -93,9 +102,16 @@ Africa Mart
 
 <p>
 
-{{t("store","text")}}
+Authentic African groceries,
+traditional products and flavors
+carefully selected for your family.
 
 </p>
+
+
+<RouterLink to="/store">
+Explore Store →
+</RouterLink>
 
 
 </div>
@@ -103,7 +119,7 @@ Africa Mart
 
 
 
-<div>
+<div class="brand restaurant reveal">
 
 
 <h2>
@@ -113,9 +129,15 @@ Michelle's Restaurant
 
 <p>
 
-{{t("restaurant","text")}}
+African, European and international cuisine
+prepared with passion and tradition.
 
 </p>
+
+
+<RouterLink to="/restaurant">
+Discover Menu →
+</RouterLink>
 
 
 </div>
@@ -124,6 +146,43 @@ Michelle's Restaurant
 
 </section>
 
+
+
+
+
+
+<!-- VALUES -->
+
+
+<section class="values container">
+
+
+<div
+v-for="item in values"
+:key="item.title"
+class="value reveal"
+>
+
+
+<div class="icon">
+{{item.icon}}
+</div>
+
+
+<h3>
+{{item.title}}
+</h3>
+
+
+<p>
+{{item.text}}
+</p>
+
+
+</div>
+
+
+</section>
 
 
 </template>
@@ -142,13 +201,77 @@ const {t}=useLanguage()
 
 
 
+const values=[
+
+
+{
+icon:"🌿",
+title:"Quality",
+text:"Premium products and fresh ingredients."
+},
+
+
+{
+icon:"🌍",
+title:"Culture",
+text:"Sharing authentic African traditions."
+},
+
+
+{
+icon:"⭐",
+title:"Experience",
+text:"A premium service for every customer."
+}
+
+
+]
+
+
+
+
+// Scroll animation
+
+const observer=
+new IntersectionObserver(
+
+(entries)=>{
+
+entries.forEach(entry=>{
+
+if(entry.isIntersecting){
+
+entry.target.classList.add("show")
+
+}
+
+})
+
+},
+
+{
+threshold:.15
+}
+
+)
+
+
+setTimeout(()=>{
+
+document
+.querySelectorAll(".reveal")
+.forEach(el=>observer.observe(el))
+
+
+},100)
+
+
+
 </script>
 
 
 
-
 <style scoped>
-
 
 
 .hero{
@@ -156,23 +279,18 @@ const {t}=useLanguage()
 
 height:100vh;
 
-
-background:
-
-url("/src/assets/images/hero.jpg");
-
-
-background-size:cover;
-
-background-position:center;
-
-
 display:flex;
 
 align-items:center;
 
-
 position:relative;
+
+
+background:
+
+url("https://marche-frais.com/wp-content/uploads/2022/11/shutterstock_1688252332-1.jpg")
+
+center/cover no-repeat;
 
 
 color:white;
@@ -193,9 +311,13 @@ inset:0;
 background:
 
 linear-gradient(
+
 90deg,
-rgba(0,0,0,.8),
-rgba(0,0,0,.3)
+
+rgba(0,0,0,.85),
+
+rgba(0,0,0,.35)
+
 );
 
 
@@ -205,13 +327,29 @@ rgba(0,0,0,.3)
 
 .content{
 
+
 position:relative;
 
 z-index:2;
 
+max-width:900px;
+
 margin-left:8%;
 
-max-width:800px;
+
+}
+
+
+
+.welcome{
+
+
+color:#d4af37;
+
+font-size:20px;
+
+font-weight:bold;
+
 
 }
 
@@ -219,11 +357,13 @@ max-width:800px;
 
 h1{
 
-font-size:75px;
+
+font-size:80px;
 
 line-height:1.05;
 
 font-weight:900;
+
 
 }
 
@@ -231,9 +371,13 @@ font-weight:900;
 
 .content p{
 
+
 font-size:25px;
 
+line-height:1.7;
+
 margin:30px 0;
+
 
 }
 
@@ -241,9 +385,48 @@ margin:30px 0;
 
 .buttons{
 
+
 display:flex;
 
 gap:20px;
+
+
+}
+
+
+
+.btn{
+
+
+padding:18px 40px;
+
+border-radius:50px;
+
+background:#d4af37;
+
+color:#111;
+
+font-weight:bold;
+
+text-decoration:none;
+
+transition:.4s;
+
+
+}
+
+
+
+.btn:hover{
+
+
+transform:translateY(-8px);
+
+
+box-shadow:
+
+0 20px 40px rgba(212,175,55,.4);
+
 
 }
 
@@ -251,19 +434,23 @@ gap:20px;
 
 .second{
 
+
 background:white;
 
-color:#111;
 
 }
 
 
 
+
+
 .story{
 
-padding:120px 0;
+
+padding:120px 20px;
 
 text-align:center;
+
 
 }
 
@@ -271,7 +458,9 @@ text-align:center;
 
 .story h2{
 
+
 font-size:55px;
+
 
 }
 
@@ -279,11 +468,18 @@ font-size:55px;
 
 .story p{
 
+
 font-size:22px;
 
 line-height:1.8;
 
+max-width:900px;
+
+margin:auto;
+
+
 }
+
 
 
 
@@ -293,20 +489,17 @@ line-height:1.8;
 
 display:grid;
 
-grid-template-columns:1fr 1fr;
+grid-template-columns:repeat(2,1fr);
 
 
 }
 
 
 
-.brands div{
+.brand{
 
 
-padding:100px;
-
-
-background:#163A24;
+padding:100px 60px;
 
 color:white;
 
@@ -317,7 +510,17 @@ text-align:center;
 
 
 
-.brands div:last-child{
+.store{
+
+
+background:#163A24;
+
+
+}
+
+
+
+.restaurant{
 
 
 background:#111;
@@ -327,26 +530,192 @@ background:#111;
 
 
 
+.brand h2{
 
-@media(max-width:700px){
+
+font-size:45px;
+
+color:#d4af37;
+
+
+}
+
+
+
+.brand p{
+
+
+font-size:20px;
+
+line-height:1.7;
+
+
+}
+
+
+
+.brand a{
+
+
+display:inline-block;
+
+margin-top:25px;
+
+color:#d4af37;
+
+font-weight:bold;
+
+text-decoration:none;
+
+
+}
+
+
+
+
+.values{
+
+
+padding:100px 0;
+
+display:grid;
+
+grid-template-columns:repeat(3,1fr);
+
+gap:30px;
+
+
+}
+
+
+
+.value{
+
+
+background:white;
+
+padding:40px;
+
+border-radius:30px;
+
+text-align:center;
+
+box-shadow:var(--shadow);
+
+
+}
+
+
+
+.icon{
+
+
+font-size:45px;
+
+
+}
+
+
+
+.value h3{
+
+
+font-size:30px;
+
+
+}
+
+
+
+
+.reveal{
+
+
+opacity:0;
+
+transform:translateY(50px);
+
+transition:1s;
+
+
+}
+
+
+
+.show{
+
+
+opacity:1;
+
+transform:none;
+
+
+}
+
+
+
+
+
+@media(max-width:900px){
 
 
 h1{
 
-font-size:45px;
+font-size:50px;
 
 }
 
 
-.brands{
+
+.brands,
+
+.values{
+
 
 grid-template-columns:1fr;
 
-}
-
 
 }
 
 
+}
+
+
+
+@media(max-width:600px){
+
+
+h1{
+
+font-size:38px;
+
+}
+
+
+
+.content{
+
+margin:0 30px;
+
+}
+
+
+
+.content p{
+
+font-size:18px;
+
+}
+
+
+
+.buttons{
+
+flex-direction:column;
+
+}
+
+
+}
 
 </style>
