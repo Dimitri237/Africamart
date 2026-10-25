@@ -17,8 +17,7 @@ Experience Excellence.
 
 <p>
 
-Africa Mart brings authentic African food products.
-Michelle's Restaurant offers African, European and international cuisine.
+Africa Mart brings & offers you African, European and international food & products.
 
 </p>
 

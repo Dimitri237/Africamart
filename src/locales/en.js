@@ -3,7 +3,6 @@ export default {
 nav:{
 home:"Home",
 store:"Africa Mart",
-restaurant:"Restaurant",
 gallery:"Gallery",
 about:"about",
 contact:"Contact"
@@ -15,7 +14,6 @@ title:"Authentic African Taste.",
 subtitle:
 "Discover premium African products and exceptional cuisine in one unique experience.",
 store:"Explore Africa Mart",
-restaurant:"Visit Restaurant"
 },
 
 story:{
@@ -29,13 +27,6 @@ store:{
 title:"Africa Mart",
 text:
 "Premium African food products carefully selected from Africa."
-},
-
-
-restaurant:{
-title:"Michelle's Restaurant",
-text:
-"A unique culinary experience combining African, European and international flavors."
 },
 
 

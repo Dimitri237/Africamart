@@ -1,580 +1,663 @@
+
 <template>
-
-<section class="product-page">
-
-<div class="container">
-
-
-<div class="product-box">
-
-
-<div class="image-section">
-
-<img 
-:src="product.image"
-:alt="product.name"
-/>
-
-</div>
-
-
-
-<div class="info">
-
-
-<span class="category">
-{{product.category}}
-</span>
-
-
-
-<h1>
-{{product.name}}
-</h1>
-
-
-
-<p>
-{{product.description}}
-</p>
-
-
-
-<h3>
-Choose size
-</h3>
-
-
-<div class="sizes">
-
-
-<button
-v-for="size in product.sizes"
-:key="size.label"
-:class="{active:selectedSize.label===size.label}"
-@click="selectSize(size)"
->
-
-{{size.label}}
-
-</button>
-
-
-</div>
-
-
-
-<h3>
-Quantity
-</h3>
-
-
-<div class="quantity">
-
-
-<button @click="decrease">
--
-</button>
-
-
-<strong>
-{{quantity}}
-</strong>
-
-
-<button @click="increase">
-+
-</button>
-
-
-</div>
-
-
-
-<div class="price">
-
-
-<h2>
-{{totalPrice}} FCFA
-</h2>
-
-
-</div>
-
-
-
-<button 
-class="cart"
-@click="addCart"
->
-
-🛒 Add to cart
-
-</button>
-
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-</section>
-
+  <main class="detail-page">
+    <div class="container">
+      <div class="top-bar">
+        <RouterLink to="/store" class="back-link">
+          ← Back to store
+        </RouterLink>
+
+        <RouterLink to="/cart" class="cart-link">
+          🛒 Cart ({{ cartCount }})
+        </RouterLink>
+      </div>
+
+      <div v-if="loading" class="message">
+        Loading product...
+      </div>
+
+      <div v-else-if="errorMessage" class="message">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else-if="product" class="product-layout">
+        <div class="image-panel">
+          <img
+            v-if="product.image"
+            :src="product.image"
+            :alt="product.name"
+          />
+
+          <div v-else class="placeholder">
+            📦
+          </div>
+        </div>
+
+        <div class="details-panel">
+          <span class="eyebrow">
+            AFRICA MART COLLECTION
+          </span>
+
+          <h1>{{ product.name }}</h1>
+
+          <div
+            class="availability"
+            :class="{ unavailable: stock <= 0 }"
+          >
+            <span class="dot"></span>
+
+            {{
+              stock > 0
+                ? "Available in stock"
+                : "Currently unavailable"
+            }}
+          </div>
+
+          <p class="description">
+            {{ product.description ||
+              "Discover authentic African quality, carefully selected for your home." }}
+          </p>
+
+          <div class="information">
+            <div>
+              <span>Units per carton</span>
+              <strong>{{ unitsPerCarton }}</strong>
+            </div>
+
+            <div>
+              <span>Available stock</span>
+              <strong>
+                {{ formatQuantity(stock) }} carton(s)
+              </strong>
+            </div>
+          </div>
+
+          <h3>Choose your purchase option</h3>
+
+          <div class="purchase-options">
+            <button
+              type="button"
+              class="option"
+              :class="{ selected: mode === 'unit' }"
+              :disabled="!hasUnitPrice"
+              @click="changeMode('unit')"
+            >
+              <span>Buy by unit</span>
+              <strong>{{ formatMoney(product.boxPrice) }}</strong>
+              <small>Per piece</small>
+            </button>
+
+            <button
+              type="button"
+              class="option"
+              :class="{ selected: mode === 'carton' }"
+              :disabled="!hasCartonPrice"
+              @click="changeMode('carton')"
+            >
+              <span>Buy by carton</span>
+              <strong>{{ formatMoney(product.cartonPrice) }}</strong>
+              <small>{{ unitsPerCarton }} pieces</small>
+            </button>
+          </div>
+
+          <div class="purchase-summary">
+            <div class="quantity-control">
+              <button
+                type="button"
+                :disabled="quantity <= 1"
+                @click="quantity--"
+              >
+                −
+              </button>
+
+              <span>{{ quantity }}</span>
+
+              <button
+                type="button"
+                :disabled="quantity >= maxQuantity"
+                @click="quantity++"
+              >
+                +
+              </button>
+            </div>
+
+            <div class="total">
+              <small>Total price</small>
+              <strong>{{ formatMoney(total) }}</strong>
+            </div>
+          </div>
+
+          <p v-if="feedback" class="feedback">
+            {{ feedback }}
+          </p>
+
+          <button
+            class="add-button"
+            type="button"
+            :disabled="stock <= 0 || maxQuantity < 1 || !selectedPrice"
+            @click="addProduct"
+          >
+            🛒 Add to cart
+          </button>
+
+          <RouterLink to="/cart" class="checkout-link">
+            View my cart →
+          </RouterLink>
+
+          <div class="benefits">
+            <div>✓ Authentic African products</div>
+            <div>✓ Quality carefully selected</div>
+            <div>✓ Easy online ordering</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 </template>
 
-
-
 <script setup>
+import {
+  ref,
+  computed,
+  watch,
+  onMounted
+} from "vue";
 
+import {
+  useRoute,
+  RouterLink
+} from "vue-router";
 
-import {ref,computed} from "vue"
-import {useRoute} from "vue-router"
+import { db } from "../firebase";
 
+import {
+  doc,
+  getDoc
+} from "firebase/firestore";
 
-import tblanc from "../assets/images/products/tblanc.png"
-import tjaune from "../assets/images/products/tjaune.png"
-import miondo from "../assets/images/products/miondo.png"
-import poivre from "../assets/images/products/poivre.png"
+import { useCart } from "../composables/useCart";
 
+const route = useRoute();
 
+const {
+  cart,
+  cartCount,
+  addToCart
+} = useCart();
 
-const route = useRoute()
+const product = ref(null);
+const loading = ref(true);
+const errorMessage = ref("");
+const feedback = ref("");
 
+const mode = ref("unit");
+const quantity = ref(1);
 
+const unitsPerCarton = computed(() =>
+  Math.max(
+    1,
+    Number(product.value?.boxesPerCarton) || 1
+  )
+);
 
-const products={
+const stock = computed(() => {
+  if (!product.value) return 0;
 
+  const stocks = product.value.stocks;
 
-"white-garri":{
+  if (stocks && typeof stocks === "object") {
+    return Object.values(stocks).reduce(
+      (sum, qty) => sum + (Number(qty) || 0),
+      0
+    );
+  }
 
-name:"White Garri",
+  return Number(product.value.stock) || 0;
+});
 
-category:"Cassava Product",
+const hasUnitPrice = computed(() =>
+  Number(product.value?.boxPrice) > 0
+);
 
-description:
-"Premium fermented cassava flakes from Cameroon.",
+const hasCartonPrice = computed(() =>
+  Number(product.value?.cartonPrice) > 0
+);
 
-image:tblanc,
+const selectedPrice = computed(() =>
+  Number(
+    mode.value === "unit"
+      ? product.value?.boxPrice
+      : product.value?.cartonPrice
+  ) || 0
+);
 
+const total = computed(() =>
+  selectedPrice.value * quantity.value
+);
 
-sizes:[
+const maxQuantity = computed(() => {
+  if (mode.value === "carton") {
+    return Math.floor(stock.value + 0.000001);
+  }
 
-{
-label:"500g",
-price:1500
-},
+  return Math.floor(
+    stock.value * unitsPerCarton.value + 0.000001
+  );
+});
 
-{
-label:"1 Kg",
-price:2500
-},
+watch(maxQuantity, value => {
+  if (quantity.value > value) {
+    quantity.value = Math.max(1, value);
+  }
+});
 
-{
-label:"5 Kg",
-price:10000
-},
-
-{
-label:"10 Kg",
-price:18000
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD"
+  }).format(Number(value) || 0);
 }
 
-]
-
-},
-
-
-
-"yellow-garri":{
-
-name:"Yellow Garri",
-
-category:"Traditional Food",
-
-description:
-"Golden cassava flakes with authentic African taste.",
-
-image:tjaune,
-
-
-sizes:[
-
-{
-label:"500g",
-price:2000
-},
-
-{
-label:"1 Kg",
-price:3000
-},
-
-{
-label:"5 Kg",
-price:12000
+function formatQuantity(value) {
+  return new Intl.NumberFormat("en-CA", {
+    maximumFractionDigits: 3
+  }).format(value);
 }
 
-]
-
-},
-
-
-
-"miondo":{
-
-name:"Miondo",
-
-category:"African Delicacy",
-
-description:
-"Traditional cassava sticks handmade in Cameroon.",
-
-image:miondo,
-
-
-sizes:[
-
-{
-label:"10 pieces",
-price:2500
-},
-
-{
-label:"25 pieces",
-price:5000
-},
-
-{
-label:"50 pieces",
-price:9000
+function changeMode(value) {
+  mode.value = value;
+  quantity.value = 1;
+  feedback.value = "";
 }
 
-]
+function addProduct() {
+  if (!product.value || stock.value <= 0) return;
 
-},
+  const alreadyInCart = cart.value
+    .filter(item => item.productId === product.value.id)
+    .reduce((sum, item) => {
+      const pieces = item.mode === "carton"
+        ? item.quantity * unitsPerCarton.value
+        : item.quantity;
 
+      return sum + pieces;
+    }, 0);
 
+  const newPieces = mode.value === "carton"
+    ? quantity.value * unitsPerCarton.value
+    : quantity.value;
 
-"white-pepper":{
+  const availablePieces = Math.floor(
+    stock.value * unitsPerCarton.value + 0.000001
+  );
 
-name:"White Pepper",
+  if (alreadyInCart + newPieces > availablePieces) {
+    feedback.value =
+      "The requested quantity exceeds available stock.";
+    return;
+  }
 
-category:"Seasoning",
+  try {
+    addToCart(
+      product.value,
+      mode.value,
+      quantity.value
+    );
 
-description:
-"Premium natural African spice.",
-
-image:poivre,
-
-
-sizes:[
-
-{
-label:"100g",
-price:1500
-},
-
-{
-label:"250g",
-price:3000
-},
-
-{
-label:"500g",
-price:5500
+    feedback.value =
+      "Product successfully added to your cart!";
+  } catch (error) {
+    feedback.value = error.message;
+  }
 }
 
-]
+async function loadProduct() {
+  loading.value = true;
+  errorMessage.value = "";
 
+  try {
+    const snapshot = await getDoc(
+      doc(db, "products", String(route.params.id))
+    );
+
+    if (!snapshot.exists()) {
+      errorMessage.value = "Product not found.";
+      return;
+    }
+
+    product.value = {
+      ...snapshot.data(),
+      id: snapshot.id
+    };
+
+    mode.value = hasUnitPrice.value
+      ? "unit"
+      : "carton";
+
+    quantity.value = 1;
+  } catch (error) {
+    console.error(error);
+
+    errorMessage.value =
+      "Unable to load this product.";
+  } finally {
+    loading.value = false;
+  }
 }
 
-
-}
-
-
-
-const product =
-products[route.params.id]
-
-
-
-const selectedSize = ref(product.sizes[0])
-
-
-const quantity = ref(1)
-
-
-
-function selectSize(size){
-
-selectedSize.value=size
-
-}
-
-
-
-function increase(){
-
-quantity.value++
-
-}
-
-
-
-function decrease(){
-
-if(quantity.value>1)
-quantity.value--
-
-}
-
-
-
-const totalPrice = computed(()=>{
-
-return selectedSize.value.price * quantity.value
-
-})
-
-
-
-function addCart(){
-
-alert(
-`${product.name} added (${quantity.value})`
-)
-
-}
-
-
-
+onMounted(loadProduct);
 </script>
 
-
-
 <style scoped>
-
-
-.product-page{
-
-padding:120px 0;
-
-background:
-
-radial-gradient(
-circle,
-rgba(212,175,55,.15),
-transparent
-),
-
-#faf8f2;
-
+* {
+  box-sizing: border-box;
 }
 
-
-
-.container{
-
-width:90%;
-
-max-width:1200px;
-
-margin:auto;
-
+.detail-page {
+  min-height: 100vh;
+  padding: 40px 0 90px;
+  background: #f8faf9;
+  color: #142b23;
+  font-family: Inter, Poppins, sans-serif;
 }
 
-
-
-.product-box{
-
-display:grid;
-
-grid-template-columns:1fr 1fr;
-
-gap:60px;
-
-background:white;
-
-padding:40px;
-
-border-radius:35px;
-
-box-shadow:
-0 20px 50px rgba(0,0,0,.12);
-
+.container {
+  width: min(1150px, 92%);
+  margin-top: 70px!important;
+  margin: auto;
 }
 
-
-
-.image-section img{
-
-width:100%;
-
-height:500px;
-
-object-fit:cover;
-
-border-radius:30px;
-
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 35px;
 }
 
-
-
-.category{
-
-color:#d4af37;
-
-font-weight:bold;
-
+.back-link,
+.cart-link {
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
-
-
-.info h1{
-
-font-size:50px;
-
+.product-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 55px;
+  align-items: start;
 }
 
-
-
-.info p{
-
-color:#666;
-
-line-height:1.7;
-
+.image-panel {
+  display: grid;
+  place-items: center;
+  min-height: 510px;
+  padding: 35px;
+  border: 1px solid #e4eee8;
+  border-radius: 25px;
+  background: #edf7f0;
 }
 
-
-
-.sizes{
-
-display:flex;
-
-gap:15px;
-
-flex-wrap:wrap;
-
+.image-panel img {
+  width: 100%;
+  max-height: 450px;
+  object-fit: contain;
 }
 
-
-
-.sizes button{
-
-padding:12px 25px;
-
-border-radius:30px;
-
-border:1px solid #ddd;
-
-background:white;
-
-cursor:pointer;
-
+.placeholder {
+  font-size: 100px;
 }
 
-
-
-.sizes .active{
-
-background:#d4af37;
-
+.details-panel {
+  padding: 15px 0;
 }
 
-
-
-.quantity{
-
-display:flex;
-
-align-items:center;
-
-gap:30px;
-
+.eyebrow {
+  color: #059669;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 2px;
 }
 
-
-
-.quantity button{
-
-width:45px;
-
-height:45px;
-
-border-radius:50%;
-
-border:none;
-
-background:#111;
-
-color:white;
-
-font-size:25px;
-
+h1 {
+  margin: 16px 0;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.15;
 }
 
-
-
-.price h2{
-
-color:#d4af37;
-
-font-size:35px;
-
+.availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 30px;
+  background: #d1fae5;
+  color: #047857;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-
-
-.cart{
-
-width:100%;
-
-padding:18px;
-
-border:none;
-
-border-radius:40px;
-
-background:#d4af37;
-
-font-weight:bold;
-
-font-size:18px;
-
+.availability.unavailable {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
-
-
-@media(max-width:800px){
-
-
-.product-box{
-
-grid-template-columns:1fr;
-
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-
-.image-section img{
-
-height:350px;
-
+.description {
+  margin: 24px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.9;
 }
 
-
-.info h1{
-
-font-size:35px;
-
+.information {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
 }
 
-
+.information > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 17px;
+  border: 1px solid #e5ede8;
+  border-radius: 13px;
+  background: white;
 }
 
+.information span {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.information strong {
+  color: #065f46;
+  font-size: 14px;
+}
+
+h3 {
+  margin: 0 0 15px;
+  font-size: 16px;
+}
+
+.purchase-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 18px;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+}
+
+.option.selected {
+  border-color: #059669;
+  background: #ecfdf5;
+}
+
+.option:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.option span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.option strong {
+  color: #065f46;
+  font-size: 22px;
+}
+
+.option small {
+  color: #94a3b8;
+}
+
+.purchase-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 28px 0;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 7px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+}
+
+.quantity-control button {
+  width: 35px;
+  height: 35px;
+  border: none;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.quantity-control button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: right;
+}
+
+.total small {
+  color: #94a3b8;
+}
+
+.total strong {
+  color: #065f46;
+  font-size: 25px;
+}
+
+.add-button {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: 12px;
+  background: #065f46;
+  color: white;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.add-button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.checkout-link {
+  display: block;
+  margin: 20px 0;
+  color: #059669;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.feedback {
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.message {
+  padding: 50px;
+  text-align: center;
+  color: #64748b;
+}
+
+@media (max-width: 800px) {
+  .product-layout {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .image-panel {
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 450px) {
+  .detail-page {
+    padding-top: 25px;
+  }
+
+  .purchase-options {
+    gap: 9px;
+  }
+
+  .option {
+    padding: 12px;
+  }
+
+  .option strong {
+    font-size: 18px;
+  }
+}
 </style>
