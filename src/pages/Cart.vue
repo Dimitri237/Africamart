@@ -277,6 +277,7 @@
   </main>
 </template>
 
+
 <script setup>
 import { reactive, ref } from "vue";
 
@@ -325,20 +326,6 @@ function formatMoney(value) {
   }).format(Number(value) || 0);
 }
 
-function getStock(product) {
-  if (
-    product.stocks &&
-    typeof product.stocks === "object"
-  ) {
-    return Object.values(product.stocks).reduce(
-      (sum, qty) => sum + (Number(qty) || 0),
-      0
-    );
-  }
-
-  return Number(product.stock) || 0;
-}
-
 async function submitOrder() {
   if (submitting.value || !cart.value.length) return;
 
@@ -357,7 +344,8 @@ async function submitOrder() {
   submitting.value = true;
 
   try {
-    // Relire les produits avant la commande.
+    // Relire les produits pour vérifier leur existence
+    // et récupérer leurs prix actuels, sans contrôler le stock.
     const ids = [
       ...new Set(
         cart.value.map(item => item.productId)
@@ -380,12 +368,14 @@ async function submitOrder() {
       snapshot.docs.forEach(productDoc => {
         productMap.set(
           productDoc.id,
-          productDoc.data()
+          {
+            ...productDoc.data(),
+            id: productDoc.id
+          }
         );
       });
     }
 
-    const requiredPieces = new Map();
     const validatedItems = [];
 
     for (const item of cart.value) {
@@ -393,7 +383,7 @@ async function submitOrder() {
 
       if (!product) {
         throw new Error(
-          `${item.name} is no longer available.`
+          `${item.name} no longer exists in the store.`
         );
       }
 
@@ -402,11 +392,12 @@ async function submitOrder() {
         Number(product.boxesPerCarton) || 1
       );
 
-      const quantity = Math.floor(
-        Number(item.quantity)
-      );
+      const quantity = Number(item.quantity);
 
-      if (!Number.isFinite(quantity) || quantity < 1) {
+      if (
+        !Number.isSafeInteger(quantity) ||
+        quantity < 1
+      ) {
         throw new Error(
           `Invalid quantity for ${product.name}.`
         );
@@ -428,16 +419,6 @@ async function submitOrder() {
         );
       }
 
-      const pieces = item.mode === "carton"
-        ? quantity * unitsPerCarton
-        : quantity;
-
-      requiredPieces.set(
-        item.productId,
-        (requiredPieces.get(item.productId) || 0) +
-          pieces
-      );
-
       validatedItems.push({
         productId: item.productId,
         name: product.name,
@@ -453,26 +434,8 @@ async function submitOrder() {
       });
     }
 
-    // Vérification globale du stock par produit.
-    for (const [id, pieces] of requiredPieces) {
-      const product = productMap.get(id);
-
-      const unitsPerCarton = Math.max(
-        1,
-        Number(product.boxesPerCarton) || 1
-      );
-
-      const availablePieces = Math.floor(
-        getStock(product) * unitsPerCarton +
-          0.000001
-      );
-
-      if (pieces > availablePieces) {
-        throw new Error(
-          `Insufficient stock for ${product.name}. Please adjust your cart.`
-        );
-      }
-    }
+    // Aucun contrôle de stock :
+    // la commande peut être passée même si le stock est nul.
 
     const total = Number(
       validatedItems
@@ -480,7 +443,6 @@ async function submitOrder() {
         .toFixed(2)
     );
 
-    // Version MVP : commande en attente.
     const orderData = {
       customer: {
         name: customer.name,
@@ -509,6 +471,7 @@ async function submitOrder() {
       createdAt: serverTimestamp()
     };
 
+    // Enregistrer la commande dans Firestore.
     const orderRef = await addDoc(
       collection(db, "orders"),
       orderData
@@ -531,6 +494,7 @@ async function submitOrder() {
   }
 }
 </script>
+
 
 <style scoped>
 * {

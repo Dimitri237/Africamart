@@ -309,10 +309,22 @@ function handleEscape(event) {
 // ==============================
 // WATCH ROUTE / MENU
 // ==============================
+
 watch(
   () => route.fullPath,
-  () => closeMenu()
+  () => {
+    closeMenu();
+
+    // Remonter en haut après le changement de page
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "smooth"
+    });
+  },
+  { flush: "post" }
 );
+
 
 watch(mobileMenu, (isOpen) => {
   if (typeof document === "undefined") return;

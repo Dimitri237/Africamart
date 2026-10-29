@@ -1,4 +1,4 @@
-
+```vue
 <template>
   <main class="detail-page">
     <div class="container">
@@ -40,17 +40,10 @@
 
           <h1>{{ product.name }}</h1>
 
-          <div
-            class="availability"
-            :class="{ unavailable: stock <= 0 }"
-          >
+          <!-- Tous les produits sont affichés comme disponibles -->
+          <div class="availability">
             <span class="dot"></span>
-
-            {{
-              stock > 0
-                ? "Available in stock"
-                : "Currently unavailable"
-            }}
+            Available
           </div>
 
           <p class="description">
@@ -65,10 +58,8 @@
             </div>
 
             <div>
-              <span>Available stock</span>
-              <strong>
-                {{ formatQuantity(stock) }} carton(s)
-              </strong>
+              <span>Product availability</span>
+              <strong>Available</strong>
             </div>
           </div>
 
@@ -114,7 +105,6 @@
 
               <button
                 type="button"
-                :disabled="quantity >= maxQuantity"
                 @click="quantity++"
               >
                 +
@@ -134,7 +124,7 @@
           <button
             class="add-button"
             type="button"
-            :disabled="stock <= 0 || maxQuantity < 1 || !selectedPrice"
+            :disabled="!selectedPrice"
             @click="addProduct"
           >
             🛒 Add to cart
@@ -156,12 +146,7 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  computed,
-  watch,
-  onMounted
-} from "vue";
+import { ref, computed, onMounted } from "vue";
 
 import {
   useRoute,
@@ -180,7 +165,6 @@ import { useCart } from "../composables/useCart";
 const route = useRoute();
 
 const {
-  cart,
   cartCount,
   addToCart
 } = useCart();
@@ -199,21 +183,6 @@ const unitsPerCarton = computed(() =>
     Number(product.value?.boxesPerCarton) || 1
   )
 );
-
-const stock = computed(() => {
-  if (!product.value) return 0;
-
-  const stocks = product.value.stocks;
-
-  if (stocks && typeof stocks === "object") {
-    return Object.values(stocks).reduce(
-      (sum, qty) => sum + (Number(qty) || 0),
-      0
-    );
-  }
-
-  return Number(product.value.stock) || 0;
-});
 
 const hasUnitPrice = computed(() =>
   Number(product.value?.boxPrice) > 0
@@ -235,33 +204,11 @@ const total = computed(() =>
   selectedPrice.value * quantity.value
 );
 
-const maxQuantity = computed(() => {
-  if (mode.value === "carton") {
-    return Math.floor(stock.value + 0.000001);
-  }
-
-  return Math.floor(
-    stock.value * unitsPerCarton.value + 0.000001
-  );
-});
-
-watch(maxQuantity, value => {
-  if (quantity.value > value) {
-    quantity.value = Math.max(1, value);
-  }
-});
-
 function formatMoney(value) {
   return new Intl.NumberFormat("en-CA", {
     style: "currency",
     currency: "CAD"
   }).format(Number(value) || 0);
-}
-
-function formatQuantity(value) {
-  return new Intl.NumberFormat("en-CA", {
-    maximumFractionDigits: 3
-  }).format(value);
 }
 
 function changeMode(value) {
@@ -271,29 +218,11 @@ function changeMode(value) {
 }
 
 function addProduct() {
-  if (!product.value || stock.value <= 0) return;
+  if (!product.value) return;
 
-  const alreadyInCart = cart.value
-    .filter(item => item.productId === product.value.id)
-    .reduce((sum, item) => {
-      const pieces = item.mode === "carton"
-        ? item.quantity * unitsPerCarton.value
-        : item.quantity;
-
-      return sum + pieces;
-    }, 0);
-
-  const newPieces = mode.value === "carton"
-    ? quantity.value * unitsPerCarton.value
-    : quantity.value;
-
-  const availablePieces = Math.floor(
-    stock.value * unitsPerCarton.value + 0.000001
-  );
-
-  if (alreadyInCart + newPieces > availablePieces) {
+  if (!selectedPrice.value) {
     feedback.value =
-      "The requested quantity exceeds available stock.";
+      "This purchase option has no valid price.";
     return;
   }
 
@@ -307,7 +236,8 @@ function addProduct() {
     feedback.value =
       "Product successfully added to your cart!";
   } catch (error) {
-    feedback.value = error.message;
+    feedback.value =
+      error?.message || "Unable to add this product to your cart.";
   }
 }
 
@@ -347,6 +277,7 @@ async function loadProduct() {
 
 onMounted(loadProduct);
 </script>
+```
 
 <style scoped>
 * {

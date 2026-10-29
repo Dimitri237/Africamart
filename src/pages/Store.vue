@@ -130,15 +130,8 @@
             class="product-card"
           >
             <div class="product-image">
-              <span
-                class="stock-badge"
-                :class="{ unavailable: getStock(product) <= 0 }"
-              >
-                {{
-                  getStock(product) > 0
-                    ? "In stock"
-                    : "Out of stock"
-                }}
+           <span class="stock-badge" >
+               Available
               </span>
 
               <img
