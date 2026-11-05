@@ -1,4 +1,3 @@
-
 <template>
   <main class="store-page">
     <!-- HERO -->
@@ -27,10 +26,7 @@
         </div>
 
         <div class="hero-brand">
-          <img
-            src="../assets/images/logos/logos.png"
-            alt="Africa Mart"
-          />
+          <img src="../assets/images/logos/logos.png" alt="Africa Mart" />
         </div>
       </div>
     </section>
@@ -60,30 +56,121 @@
           </RouterLink>
         </div>
 
+        <!-- ESPACE GROSSISTE -->
+        <section class="wholesale-panel">
+          <div v-if="wholesaleProfile" class="wholesale-connected">
+            <div>
+              <span class="wholesale-eyebrow">ESPACE GROSSISTE</span>
+              <h3>Bienvenue, {{ wholesaleProfile.storeName || wholesaleProfile.fullName }}</h3>
+              <p>Vous consultez maintenant les tarifs réservés aux grossistes.</p>
+            </div>
+
+            <button type="button" class="wholesale-logout" :disabled="authLoading" @click="logoutWholesaler">
+              Se déconnecter
+            </button>
+          </div>
+
+          <div v-else class="wholesale-auth">
+            <div class="wholesale-intro">
+              <span class="wholesale-eyebrow">TARIFS PROFESSIONNELS</span>
+              <h3>Vous êtes grossiste ?</h3>
+              <p>
+                Créez votre compte ou connectez-vous pour consulter
+                les prix de nos produits par carton.
+              </p>
+            </div>
+
+            <div class="auth-tabs">
+              <button type="button" :class="{ active: authMode === 'login' }"
+                @click="authMode = 'login'; authMessage = ''; authError = ''">
+                Connexion
+              </button>
+              <button type="button" :class="{ active: authMode === 'register' }"
+                @click="authMode = 'register'; authMessage = ''; authError = ''">
+                Créer un compte
+              </button>
+            </div>
+
+            <form class="wholesale-form" @submit.prevent="submitWholesalerAuth">
+              <div v-if="authMode === 'register' || needsProfile" class="form-grid">
+                <label>
+                  Nom complet du responsable
+                  <input v-model.trim="wholesaleForm.fullName" type="text" autocomplete="name"
+                    placeholder="Ex. Jean Dupont" required />
+                </label>
+
+                <label>
+                  Nom du magasin / entreprise
+                  <input v-model.trim="wholesaleForm.storeName" type="text" autocomplete="organization"
+                    placeholder="Nom de votre magasin" required />
+                </label>
+
+                <label>
+                  Téléphone / WhatsApp
+                  <input v-model.trim="wholesaleForm.phone" type="tel" autocomplete="tel" placeholder="+1..."
+                    required />
+                </label>
+
+                <label>
+                  Adresse du magasin
+                  <input v-model.trim="wholesaleForm.address" type="text" autocomplete="street-address"
+                    placeholder="Adresse complète" required />
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  Adresse e-mail
+                  <input v-model.trim="wholesaleForm.email" type="email" autocomplete="email"
+                    placeholder="vous@exemple.com" required />
+                </label>
+
+                <label>
+                  Mot de passe
+                  <input v-if="!needsProfile" v-model="wholesaleForm.password" type="password"
+                    :autocomplete="authMode === 'login' ? 'current-password' : 'new-password'" minlength="6"
+                    placeholder="6 caractères minimum" required />
+                  <small v-else class="profile-email-note">
+                    Votre compte est déjà connecté. Aucun nouveau mot de passe n'est nécessaire.
+                  </small>
+                </label>
+              </div>
+
+              <p v-if="authError" class="auth-feedback error">{{ authError }}</p>
+              <p v-if="authMessage" class="auth-feedback success">{{ authMessage }}</p>
+
+              <button type="submit" class="wholesale-submit" :disabled="authLoading">
+                {{ authLoading
+                  ? "Veuillez patienter..."
+                  : needsProfile
+                    ? "Enregistrer mes informations"
+                    : authMode === "register"
+                      ? "Créer mon compte grossiste"
+                      : "Se connecter" }}
+              </button>
+
+              <p class="auth-note">
+                Votre compte grossiste est personnel. Vos informations
+                seront enregistrées pour vos prochaines visites.
+              </p>
+            </form>
+          </div>
+        </section>
+
         <div class="toolbar">
           <div class="search-box">
             <span>⌕</span>
 
-            <input
-              v-model="search"
-              placeholder="Search for a product..."
-              aria-label="Search products"
-            />
+            <input v-model="search" placeholder="Search for a product..." aria-label="Search products" />
           </div>
 
-          <select
-            v-model="stockFilter"
-            aria-label="Filter products"
-          >
+          <select v-model="stockFilter" aria-label="Filter products">
             <option value="all">All products</option>
             <option value="available">In stock</option>
             <option value="out">Out of stock</option>
           </select>
 
-          <select
-            v-model="sortBy"
-            aria-label="Sort products"
-          >
+          <select v-model="sortBy" aria-label="Sort products">
             <option value="name">Name: A–Z</option>
             <option value="priceAsc">Price: Low to high</option>
             <option value="priceDesc">Price: High to low</option>
@@ -96,12 +183,7 @@
             product(s) found
           </span>
 
-          <button
-            type="button"
-            class="reload-button"
-            :disabled="loading"
-            @click="loadProducts"
-          >
+          <button type="button" class="reload-button" :disabled="loading" @click="loadProducts">
             ↻ Refresh
           </button>
         </div>
@@ -116,30 +198,18 @@
           <button @click="loadProducts">Try again</button>
         </div>
 
-        <div
-          v-else-if="!filteredProducts.length"
-          class="status-box"
-        >
+        <div v-else-if="!filteredProducts.length" class="status-box">
           No products found.
         </div>
 
         <div v-else class="products-grid">
-          <article
-            v-for="product in filteredProducts"
-            :key="product.id"
-            class="product-card"
-          >
+          <article v-for="product in filteredProducts" :key="product.id" class="product-card">
             <div class="product-image">
-           <span class="stock-badge" >
-               Available
+              <span class="stock-badge">
+                Available
               </span>
 
-              <img
-                v-if="product.image"
-                :src="product.image"
-                :alt="product.name"
-                loading="lazy"
-              />
+              <img v-if="product.image" :src="product.image" :alt="product.name" loading="lazy" />
 
               <div v-else class="image-placeholder">
                 📦
@@ -166,19 +236,21 @@
                   </strong>
                 </div>
 
-                <div>
-                  <small>Carton price</small>
-                  <strong>
-                    {{ formatMoney(product.cartonPrice) }}
-                  </strong>
-                </div>
+               <div v-if="wholesaleProfile">
+  <small>Carton price</small>
+  <strong>
+    {{ formatMoney(product.cartonPrice) }}
+  </strong>
+</div>
+
+<div v-else class="locked-carton-price">
+  <small>Carton price</small>
+  <strong>🔒 Grossistes</strong>
+</div>
               </div>
 
               <div class="product-footer">
-                <RouterLink
-                  :to="`/product/${product.id}`"
-                  class="details-button"
-                >
+                <RouterLink :to="`/product/${product.id}`" class="details-button">
                   View details
                   <span>↗</span>
                 </RouterLink>
@@ -190,12 +262,7 @@
     </section>
 
     <!-- FLOATING CART -->
-    <RouterLink
-      v-if="cartCount"
-      to="/cart"
-      class="floating-cart"
-      aria-label="Open shopping cart"
-    >
+    <RouterLink v-if="cartCount" to="/cart" class="floating-cart" aria-label="Open shopping cart">
       🛒
       <span>{{ cartCount }}</span>
     </RouterLink>
@@ -206,28 +273,61 @@
 import {
   ref,
   computed,
-  onMounted
+  onMounted,
+  onUnmounted
 } from "vue";
 
 import { RouterLink } from "vue-router";
-
 import { db } from "../firebase";
 
 import {
   collection,
-  getDocs
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
 } from "firebase/firestore";
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut
+} from "firebase/auth";
 
 import { useCart } from "../composables/useCart";
 
 const { cartCount } = useCart();
+const auth = getAuth();
 
 const products = ref([]);
+const wholesalePrices = ref({});
 const search = ref("");
 const stockFilter = ref("all");
 const sortBy = ref("name");
 const loading = ref(true);
 const errorMessage = ref("");
+
+const authUser = ref(null);
+const wholesaleProfile = ref(null);
+const authMode = ref("login");
+const authLoading = ref(false);
+const authError = ref("");
+const authMessage = ref("");
+const needsProfile = ref(false);
+
+const wholesaleForm = ref({
+  fullName: "",
+  storeName: "",
+  phone: "",
+  address: "",
+  email: "",
+  password: ""
+});
+
+let unsubscribeAuth = null;
 
 function getStock(product) {
   const stocks = product.stocks;
@@ -266,18 +366,14 @@ const filteredProducts = computed(() => {
 
   return [...list].sort((a, b) => {
     if (sortBy.value === "priceAsc") {
-      return Number(a.boxPrice || 0) -
-        Number(b.boxPrice || 0);
+      return Number(a.boxPrice || 0) - Number(b.boxPrice || 0);
     }
 
     if (sortBy.value === "priceDesc") {
-      return Number(b.boxPrice || 0) -
-        Number(a.boxPrice || 0);
+      return Number(b.boxPrice || 0) - Number(a.boxPrice || 0);
     }
 
-    return String(a.name || "").localeCompare(
-      String(b.name || "")
-    );
+    return String(a.name || "").localeCompare(String(b.name || ""));
   });
 });
 
@@ -286,25 +382,196 @@ async function loadProducts() {
   errorMessage.value = "";
 
   try {
-    const snapshot = await getDocs(
-      collection(db, "products")
-    );
+    const snapshot = await getDocs(collection(db, "products"));
 
-    products.value = snapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id
-    }));
+    products.value = snapshot.docs.map(document => {
+      const data = document.data();
+
+      return {
+        ...data,
+        id: document.id,
+        boxPrice: Number(data.boxPrice) || 0,
+        cartonPrice: Number(data.cartonPrice) || 0
+      };
+    });
+
   } catch (error) {
-    console.error(error);
-
-    errorMessage.value =
-      "Unable to load products. Please try again.";
+    console.error("Erreur chargement produits :", error);
+    errorMessage.value = "Unable to load products. Please try again.";
   } finally {
     loading.value = false;
   }
 }
+async function loadWholesalerProfile(user) {
+  if (!user) {
+    wholesaleProfile.value = null;
+    wholesalePrices.value = {};
+    needsProfile.value = false;
+    return;
+  }
 
-onMounted(loadProducts);
+  try {
+    const profileRef = doc(db, "wholesaleCustomers", user.uid);
+    const profileSnapshot = await getDoc(profileRef);
+
+    if (profileSnapshot.exists()) {
+      wholesaleProfile.value = profileSnapshot.data();
+      needsProfile.value = false;
+    } else {
+      wholesaleProfile.value = null;
+      needsProfile.value = true;
+      authMode.value = "register";
+      wholesaleForm.value.email = user.email || "";
+
+      authMessage.value =
+        "Complétez les informations de votre magasin pour activer votre espace grossiste.";
+    }
+
+  } catch (error) {
+    console.error("Erreur profil grossiste :", error);
+    wholesaleProfile.value = null;
+    authError.value = "Impossible de vérifier votre profil.";
+  }
+}
+
+async function submitWholesalerAuth() {
+  authLoading.value = true;
+  authError.value = "";
+  authMessage.value = "";
+
+  try {
+    const email = wholesaleForm.value.email.trim().toLowerCase();
+    const password = wholesaleForm.value.password;
+
+    if (needsProfile.value && authUser.value) {
+      await saveWholesalerProfile(authUser.value);
+      return;
+    }
+
+    if (authMode.value === "register") {
+      const requiredFields = [
+        wholesaleForm.value.fullName,
+        wholesaleForm.value.storeName,
+        wholesaleForm.value.phone,
+        wholesaleForm.value.address
+      ];
+
+      if (requiredFields.some(value => !String(value || "").trim())) {
+        throw new Error("Veuillez renseigner toutes les informations du magasin.");
+      }
+
+      const credential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      await saveWholesalerProfile(credential.user);
+      authMessage.value = "Votre compte grossiste a été créé avec succès.";
+    } else {
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      await loadWholesalerProfile(credential.user);
+    }
+  } catch (error) {
+    console.error("Authentification grossiste :", error);
+    authError.value = getAuthErrorMessage(error);
+  } finally {
+    authLoading.value = false;
+  }
+}
+
+async function saveWholesalerProfile(user) {
+  const profile = {
+    uid: user.uid,
+    fullName: wholesaleForm.value.fullName.trim(),
+    storeName: wholesaleForm.value.storeName.trim(),
+    phone: wholesaleForm.value.phone.trim(),
+    address: wholesaleForm.value.address.trim(),
+    email: user.email || wholesaleForm.value.email.trim().toLowerCase(),
+    accountType: "wholesale",
+    updatedAt: serverTimestamp()
+  };
+
+  if (
+    !profile.fullName ||
+    !profile.storeName ||
+    !profile.phone ||
+    !profile.address
+  ) {
+    throw new Error("Veuillez compléter toutes les informations du magasin.");
+  }
+
+  await setDoc(
+    doc(db, "wholesaleCustomers", user.uid),
+    {
+      ...profile,
+      createdAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  wholesaleProfile.value = profile;
+  needsProfile.value = false;
+  authMessage.value = "Vos informations ont été enregistrées.";
+  wholesaleForm.value.password = "";
+}
+
+async function logoutWholesaler() {
+  authLoading.value = true;
+  authError.value = "";
+  authMessage.value = "";
+
+  try {
+    await signOut(auth);
+    wholesaleProfile.value = null;
+    wholesalePrices.value = {};
+    authUser.value = null;
+    needsProfile.value = false;
+    authMode.value = "login";
+    wholesaleForm.value.password = "";
+  } catch (error) {
+    console.error(error);
+    authError.value = "La déconnexion a échoué. Veuillez réessayer.";
+  } finally {
+    authLoading.value = false;
+  }
+}
+
+function getAuthErrorMessage(error) {
+  const code = error?.code || "";
+
+  const messages = {
+    "auth/email-already-in-use": "Cette adresse e-mail possède déjà un compte. Connectez-vous.",
+    "auth/invalid-email": "L'adresse e-mail est invalide.",
+    "auth/weak-password": "Le mot de passe doit contenir au moins 6 caractères.",
+    "auth/invalid-credential": "Adresse e-mail ou mot de passe incorrect.",
+    "auth/user-not-found": "Aucun compte ne correspond à cette adresse e-mail.",
+    "auth/wrong-password": "Mot de passe incorrect.",
+    "auth/too-many-requests": "Trop de tentatives. Réessayez plus tard.",
+    "auth/network-request-failed": "Problème de connexion Internet."
+  };
+
+  return messages[code] || error?.message ||
+    "Une erreur est survenue. Veuillez réessayer.";
+}
+
+onMounted(() => {
+  loadProducts();
+
+  unsubscribeAuth = onAuthStateChanged(auth, async user => {
+    authUser.value = user;
+    await loadWholesalerProfile(user);
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribeAuth) unsubscribeAuth();
+});
 </script>
 
 <style scoped>
@@ -327,12 +594,10 @@ onMounted(loadProducts);
 .store-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    125deg,
-    #064e3b,
-    #047857,
-    #065f46
-  );
+  background: linear-gradient(125deg,
+      #064e3b,
+      #047857,
+      #065f46);
   color: white;
 }
 
@@ -343,7 +608,7 @@ onMounted(loadProducts);
   height: 400px;
   right: -180px;
   top: -170px;
-  border: 70px solid rgba(255,255,255,.04);
+  border: 70px solid rgba(255, 255, 255, .04);
   border-radius: 50%;
 }
 
@@ -410,7 +675,7 @@ onMounted(loadProducts);
   width: min(280px, 100%);
   max-height: 290px;
   object-fit: contain;
-  filter: drop-shadow(0 15px 30px rgba(0,0,0,.2));
+  filter: drop-shadow(0 15px 30px rgba(0, 0, 0, .2));
 }
 
 .catalogue {
@@ -540,7 +805,7 @@ onMounted(loadProducts);
 
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 18px 35px rgba(0,0,0,.07);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, .07);
 }
 
 .product-image {
@@ -613,7 +878,7 @@ onMounted(loadProducts);
   border-bottom: 1px solid #f1f5f9;
 }
 
-.product-prices > div {
+.product-prices>div {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -628,7 +893,10 @@ onMounted(loadProducts);
   color: #065f46;
   font-size: 14px;
 }
-
+.price-loading {
+  color: #d97706 !important;
+  font-size: 11px !important;
+}
 .details-button {
   display: flex;
   align-items: center;
@@ -658,7 +926,7 @@ onMounted(loadProducts);
   border-radius: 50%;
   background: #065f46;
   color: white;
-  box-shadow: 0 10px 30px rgba(6,95,70,.3);
+  box-shadow: 0 10px 30px rgba(6, 95, 70, .3);
   font-size: 25px;
   text-decoration: none;
 }
@@ -713,7 +981,9 @@ onMounted(loadProducts);
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 1100px) {
@@ -774,6 +1044,208 @@ onMounted(loadProducts);
 
   .product-image {
     height: 270px;
+  }
+}
+
+/* ESPACE GROSSISTE */
+.wholesale-panel {
+  margin: 0 0 28px;
+  padding: 25px;
+  border: 1px solid #dcece3;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff, #f0faf4);
+  box-shadow: 0 10px 30px rgba(6, 95, 70, 0.05);
+}
+
+.wholesale-auth,
+.wholesale-connected {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 25px;
+}
+
+.wholesale-intro {
+  max-width: 390px;
+}
+
+.wholesale-eyebrow {
+  color: #059669;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.wholesale-intro h3,
+.wholesale-connected h3 {
+  margin: 8px 0;
+  color: #064e3b;
+  font-size: 22px;
+}
+
+.wholesale-intro p,
+.wholesale-connected p {
+  margin: 0;
+  color: #71847a;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #e8f3ec;
+}
+
+.auth-tabs button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #547064;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  background: #ffffff;
+  color: #047857;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+}
+
+.wholesale-form {
+  flex: 1;
+  min-width: 0;
+  max-width: 650px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin-bottom: 13px;
+}
+
+.wholesale-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #456257;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wholesale-form input {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  border: 1px solid #dce8e0;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #142b23;
+  font: inherit;
+  font-size: 12px;
+}
+
+.profile-email-note {
+  color: #71847a;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.wholesale-form input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, .09);
+}
+
+.wholesale-submit,
+.wholesale-logout {
+  min-height: 43px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 9px;
+  background: #065f46;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+.wholesale-submit:hover,
+.wholesale-logout:hover {
+  background: #047857;
+}
+
+.wholesale-submit:disabled,
+.wholesale-logout:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.wholesale-submit {
+  width: 100%;
+}
+
+.auth-note {
+  margin: 10px 0 0;
+  color: #8a9b92;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.auth-feedback {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-feedback.error {
+  color: #b91c1c;
+}
+
+.auth-feedback.success {
+  color: #047857;
+}
+
+.wholesale-connected {
+  align-items: center;
+}
+
+.locked-carton-price strong {
+  color: #82938a;
+  font-size: 11px;
+}
+
+@media (max-width: 800px) {
+  .wholesale-auth {
+    flex-direction: column;
+  }
+
+  .wholesale-intro,
+  .wholesale-form {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .wholesale-panel {
+    padding: 18px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wholesale-connected {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

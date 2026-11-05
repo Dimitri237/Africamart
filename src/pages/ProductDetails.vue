@@ -1,4 +1,4 @@
-```vue
+
 <template>
   <main class="detail-page">
     <div class="container">
@@ -21,6 +21,8 @@
       </div>
 
       <div v-else-if="product" class="product-layout">
+
+        <!-- IMAGE -->
         <div class="image-panel">
           <img
             v-if="product.image"
@@ -33,6 +35,7 @@
           </div>
         </div>
 
+        <!-- INFORMATIONS -->
         <div class="details-panel">
           <span class="eyebrow">
             AFRICA MART COLLECTION
@@ -40,7 +43,6 @@
 
           <h1>{{ product.name }}</h1>
 
-          <!-- Tous les produits sont affichés comme disponibles -->
           <div class="availability">
             <span class="dot"></span>
             Available
@@ -66,6 +68,8 @@
           <h3>Choose your purchase option</h3>
 
           <div class="purchase-options">
+
+            <!-- PRIX UNITAIRE -->
             <button
               type="button"
               class="option"
@@ -74,24 +78,54 @@
               @click="changeMode('unit')"
             >
               <span>Buy by unit</span>
-              <strong>{{ formatMoney(product.boxPrice) }}</strong>
+
+              <strong>
+                {{ formatMoney(product.boxPrice) }}
+              </strong>
+
               <small>Per piece</small>
             </button>
 
+            <!-- PRIX CARTON POUR GROSSISTES -->
             <button
+              v-if="hasCartonPrice"
               type="button"
               class="option"
               :class="{ selected: mode === 'carton' }"
-              :disabled="!hasCartonPrice"
               @click="changeMode('carton')"
             >
-              <span>Buy by carton</span>
-              <strong>{{ formatMoney(product.cartonPrice) }}</strong>
-              <small>{{ unitsPerCarton }} pieces</small>
+              <span>📦 Buy by carton</span>
+
+              <strong>
+                {{ formatMoney(product.cartonPrice) }}
+              </strong>
+
+              <small>{{ unitsPerCarton }} pieces per carton</small>
             </button>
+
+            <!-- PRIX CARTON VERROUILLÉ -->
+            <div
+              v-else
+              class="option carton-locked"
+            >
+              <span>🔒 Buy by carton</span>
+
+              <strong>Wholesale only</strong>
+
+              <small>
+                Reserved for registered wholesalers
+              </small>
+
+              <RouterLink to="/store">
+                Sign in as a wholesaler →
+              </RouterLink>
+            </div>
+
           </div>
 
+          <!-- RÉCAPITULATIF -->
           <div class="purchase-summary">
+
             <div class="quantity-control">
               <button
                 type="button"
@@ -112,15 +146,23 @@
             </div>
 
             <div class="total">
-              <small>Total price</small>
-              <strong>{{ formatMoney(total) }}</strong>
+              <small>
+                Total price
+                ({{ mode === 'carton' ? 'Cartons' : 'Units' }})
+              </small>
+
+              <strong>
+                {{ formatMoney(total) }}
+              </strong>
             </div>
+
           </div>
 
           <p v-if="feedback" class="feedback">
             {{ feedback }}
           </p>
 
+          <!-- AJOUT AU PANIER -->
           <button
             class="add-button"
             type="button"
@@ -139,14 +181,22 @@
             <div>✓ Quality carefully selected</div>
             <div>✓ Easy online ordering</div>
           </div>
+
         </div>
       </div>
     </div>
   </main>
 </template>
 
+
+
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onUnmounted
+} from "vue";
 
 import {
   useRoute,
@@ -160,22 +210,40 @@ import {
   getDoc
 } from "firebase/firestore";
 
+import {
+  getAuth,
+  onAuthStateChanged
+} from "firebase/auth";
+
 import { useCart } from "../composables/useCart";
 
 const route = useRoute();
+const auth = getAuth();
 
 const {
   cartCount,
   addToCart
 } = useCart();
 
+// =====================================
+// ÉTATS
+// =====================================
+
 const product = ref(null);
+const wholesaleProfile = ref(null);
+
 const loading = ref(true);
 const errorMessage = ref("");
 const feedback = ref("");
 
 const mode = ref("unit");
 const quantity = ref(1);
+
+let unsubscribeAuth = null;
+
+// =====================================
+// INFORMATIONS PRODUIT
+// =====================================
 
 const unitsPerCarton = computed(() =>
   Math.max(
@@ -184,25 +252,42 @@ const unitsPerCarton = computed(() =>
   )
 );
 
+// =====================================
+// CONTRÔLE DES PRIX
+// =====================================
+
+// Prix unitaire accessible à tous
 const hasUnitPrice = computed(() =>
   Number(product.value?.boxPrice) > 0
 );
 
+// Prix carton directement depuis products
 const hasCartonPrice = computed(() =>
+  wholesaleProfile.value?.accountType === "wholesale" &&
   Number(product.value?.cartonPrice) > 0
 );
 
-const selectedPrice = computed(() =>
-  Number(
-    mode.value === "unit"
-      ? product.value?.boxPrice
-      : product.value?.cartonPrice
-  ) || 0
-);
+// Prix de l'achat sélectionné
+const selectedPrice = computed(() => {
+  if (mode.value === "unit") {
+    return Number(product.value?.boxPrice) || 0;
+  }
 
+  if (mode.value === "carton" && hasCartonPrice.value) {
+    return Number(product.value?.cartonPrice) || 0;
+  }
+
+  return 0;
+});
+
+// Total
 const total = computed(() =>
   selectedPrice.value * quantity.value
 );
+
+// =====================================
+// FORMATAGE
+// =====================================
 
 function formatMoney(value) {
   return new Intl.NumberFormat("en-CA", {
@@ -211,35 +296,30 @@ function formatMoney(value) {
   }).format(Number(value) || 0);
 }
 
+// =====================================
+// CHANGEMENT DU MODE D'ACHAT
+// =====================================
+
 function changeMode(value) {
+  if (value === "carton" && !hasCartonPrice.value) {
+    feedback.value =
+      "Only registered wholesalers can purchase by carton.";
+    return;
+  }
+
+  if (value === "unit" && !hasUnitPrice.value) {
+    feedback.value = "Unit price is unavailable.";
+    return;
+  }
+
   mode.value = value;
   quantity.value = 1;
   feedback.value = "";
 }
 
-function addProduct() {
-  if (!product.value) return;
-
-  if (!selectedPrice.value) {
-    feedback.value =
-      "This purchase option has no valid price.";
-    return;
-  }
-
-  try {
-    addToCart(
-      product.value,
-      mode.value,
-      quantity.value
-    );
-
-    feedback.value =
-      "Product successfully added to your cart!";
-  } catch (error) {
-    feedback.value =
-      error?.message || "Unable to add this product to your cart.";
-  }
-}
+// =====================================
+// CHARGEMENT DU PRODUIT
+// =====================================
 
 async function loadProduct() {
   loading.value = true;
@@ -251,33 +331,179 @@ async function loadProduct() {
     );
 
     if (!snapshot.exists()) {
+      product.value = null;
       errorMessage.value = "Product not found.";
       return;
     }
 
+    const data = snapshot.data();
+
+    // Les deux prix proviennent de products
     product.value = {
-      ...snapshot.data(),
-      id: snapshot.id
+      ...data,
+      id: snapshot.id,
+      boxPrice: Number(data.boxPrice) || 0,
+      cartonPrice: Number(data.cartonPrice) || 0,
+      boxesPerCarton: Number(data.boxesPerCarton) || 1
     };
 
-    mode.value = hasUnitPrice.value
-      ? "unit"
-      : "carton";
-
+    mode.value = hasUnitPrice.value ? "unit" : "carton";
     quantity.value = 1;
+
   } catch (error) {
-    console.error(error);
+    console.error("Product loading error:", error);
 
     errorMessage.value =
       "Unable to load this product.";
+
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(loadProduct);
+// =====================================
+// VÉRIFICATION DU COMPTE GROSSISTE
+// =====================================
+
+async function loadWholesaleAccess(user) {
+  wholesaleProfile.value = null;
+
+  if (!user) {
+    if (mode.value === "carton") {
+      mode.value = "unit";
+    }
+
+    return;
+  }
+
+  try {
+    const profileSnapshot = await getDoc(
+      doc(db, "wholesaleCustomers", user.uid)
+    );
+
+    if (!profileSnapshot.exists()) {
+      return;
+    }
+
+    const profileData = profileSnapshot.data();
+
+    if (profileData.accountType !== "wholesale") {
+      return;
+    }
+
+    wholesaleProfile.value = {
+      ...profileData,
+      uid: user.uid
+    };
+
+    // Le prix carton est déjà dans product.cartonPrice
+    if (
+      !hasUnitPrice.value &&
+      hasCartonPrice.value
+    ) {
+      mode.value = "carton";
+    }
+
+  } catch (error) {
+    console.error(
+      "Wholesale access loading error:",
+      error
+    );
+
+    wholesaleProfile.value = null;
+
+    feedback.value =
+      "Unable to verify your wholesale account.";
+  }
+}
+
+// =====================================
+// AJOUT AU PANIER
+// =====================================
+
+function addProduct() {
+  if (!product.value) return;
+
+  if (!selectedPrice.value) {
+    feedback.value =
+      "This purchase option has no valid price.";
+    return;
+  }
+
+  if (
+    mode.value === "carton" &&
+    !hasCartonPrice.value
+  ) {
+    feedback.value =
+      "Only registered wholesalers can purchase by carton.";
+    return;
+  }
+
+  try {
+    // On ne transmet pas le prix carton
+    // dans le panier d'un achat unitaire.
+    const {
+      cartonPrice,
+      ...publicProduct
+    } = product.value;
+
+    const cartProduct = {
+      ...publicProduct
+    };
+
+    // Ajout du prix carton uniquement
+    // pour une commande grossiste par carton.
+    if (mode.value === "carton") {
+      cartProduct.cartonPrice =
+        Number(product.value.cartonPrice);
+    }
+
+    addToCart(
+      cartProduct,
+      mode.value,
+      quantity.value
+    );
+
+    feedback.value =
+      "Product successfully added to your cart!";
+
+  } catch (error) {
+    console.error("Cart error:", error);
+
+    feedback.value =
+      error?.message ||
+      "Unable to add this product to your cart.";
+  }
+}
+
+// =====================================
+// INITIALISATION
+// =====================================
+
+onMounted(async () => {
+  // Charger d'abord le produit pour éviter
+  // une vérification grossiste avant son chargement.
+  await loadProduct();
+
+  unsubscribeAuth = onAuthStateChanged(
+    auth,
+    async (user) => {
+      await loadWholesaleAccess(user);
+    }
+  );
+});
+
+// =====================================
+// NETTOYAGE
+// =====================================
+
+onUnmounted(() => {
+  if (unsubscribeAuth) {
+    unsubscribeAuth();
+  }
+});
 </script>
-```
+
 
 <style scoped>
 * {
@@ -294,7 +520,7 @@ onMounted(loadProduct);
 
 .container {
   width: min(1150px, 92%);
-  margin-top: 70px!important;
+  margin-top: 70px !important;
   margin: auto;
 }
 
@@ -437,6 +663,7 @@ h3 {
   background: white;
   cursor: pointer;
   text-align: left;
+  min-width: 0;
 }
 
 .option.selected {
@@ -461,6 +688,35 @@ h3 {
 
 .option small {
   color: #94a3b8;
+}
+
+/* OPTION CARTON VERROUILLÉE */
+
+.carton-locked {
+  cursor: default;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.carton-locked strong {
+  color: #64748b;
+  font-size: 17px;
+}
+
+.carton-locked small {
+  line-height: 1.5;
+}
+
+.carton-locked a {
+  margin-top: 5px;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.carton-locked a:hover {
+  text-decoration: underline;
 }
 
 .purchase-summary {
